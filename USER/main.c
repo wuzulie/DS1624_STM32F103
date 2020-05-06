@@ -3,266 +3,258 @@
 #include "usart.h"
 #include "myiic.h"
 
-#define TEM_SUM 8	//ÎÂ¶È´«¸ĞÆ÷µÄÊıÁ¿
+#define TEM_SUM 8 //æ¸©åº¦ä¼ æ„Ÿå™¨çš„æ•°é‡
 
 u8 IfDebug = 0;
 
-void USART_puts(uint8_t *s,uint8_t len)
+void USART_puts(uint8_t *s, uint8_t len)
 {
-    int i;
-    for(i=0; i<len; i++)
-    {
-        putchar(s[i]);
-    }
+	int i;
+	for (i = 0; i < len; i++)
+	{
+		putchar(s[i]);
+	}
 }
 
 void delay_us(u32 time)
-{    
-	u32 i,j;
-  
-	for(j=0; j<time; j++)
+{
+	u32 i, j;
+
+	for (j = 0; j < time; j++)
 	{
-	   for(i=0;i<9;i++);
+		for (i = 0; i < 9; i++)
+			;
 	}
-   	
 }
 
 void delay_ms(u32 time)
 {
-	u32 i,j;
-  
-	for(j=0; j<time; j++)
+	u32 i, j;
+
+	for (j = 0; j < time; j++)
 	{
-	   for(i=0;i<8000;i++);
+		for (i = 0; i < 8000; i++)
+			;
 	}
 }
 
-void i_start(void) 
-{ 
-	SDA_OUT();     //sdaÏßÊä³ö
-	IIC_SDA=1;	  	  
-	IIC_SCL=1;
-	delay_us(4);
-	IIC_SDA=0;//START:when CLK is high,DATA change form high to low 
-	delay_us(4);
-	IIC_SCL=0;//Ç¯×¡I2C×ÜÏß£¬×¼±¸·¢ËÍ»ò½ÓÊÕÊı¾İ 
-} 
-void i_stop(void) 
-{ 
-	SDA_OUT();//sdaÏßÊä³ö
-	IIC_SCL=0;
-	IIC_SDA=0;//STOP:when CLK is high DATA change form low to high
- 	delay_us(4);
-	IIC_SCL=1; 
-	IIC_SDA=1;//·¢ËÍI2C×ÜÏß½áÊøĞÅºÅ
-	delay_us(4);		 
-} 
-void i_init(void) 
-{  
-	SDA_OUT();//sdaÏßÊä³ö	
-	IIC_SCL=0; 
-	i_stop(); 
-} 
-
-u8 i_clock(void) 
-{ 
-	u8 sample; 
-	delay_us(2); 	
-	IIC_SCL=1; 
-	delay_us(2);
-	
-	SDA_IN();//SDAÉèÖÃÎªÊäÈë
-	sample=READ_SDA; 
-	delay_us(2); 
-	IIC_SCL=0; 
-	delay_us(2); 
-	return(sample); 
-}
-
-void i_ack(void) 
-{ 
-	SDA_OUT();//sdaÏßÊä³ö	
-	IIC_SDA=0; 
-	i_clock(); 
-	IIC_SDA=1; 
-} 
-
-u8 i_send(unsigned char i_data) 
-{ 
-  unsigned char i; 
-	SDA_OUT();//sdaÏßÊä³ö
-	IIC_SCL=0;//À­µÍÊ±ÖÓ¿ªÊ¼Êı¾İ´«Êä	
-	for(i=0;i<8;i++) 
-	{ 
-		if((i_data&0x80)>>7)
-			IIC_SDA=1;
-		else
-			IIC_SDA=0;
-		i_data<<=1; 
-		i_clock(); 
-	} 
-	IIC_SDA=1; 
-	if(i_clock())	//1ÔòÎŞÓ¦´ğ
-		return 0;
-	else			//0ÔòÓĞÓ¦´ğ
-		return 1; 
-}
-
-unsigned char i_receive(void) 
-{ 
-  unsigned char i_data=0; 
-  unsigned char i; 
-  for(i=0;i<8;i++) 
-    { 
-      i_data*=2; 
-      if(i_clock()) i_data++; 
-    } 
-  return(i_data); 
-}
-
-u8 start_temperature_T(char TemIdx) 
-{ 
-	i_start(); 
-	if(i_send(0x90+ (TemIdx<<1))) 
-	{ 
-		if(i_send(0xee)) 
-		{ 
-			i_stop(); 
-			delay_us(2);
-			return(1); 
-		} 
-		else 
-		{ 
-			i_stop(); 
-			delay_us(2);
-			return(0); 
-		} 
-	} 
-	else 
-	{ 
-		i_stop(); 
-		delay_us(2); 
-		return(0); 
-	} 
-} 
-
-u8 read_temperature_T(char TemIdx, unsigned char *p) 
-{ 
-	i_start(); 
-	if(i_send(0x90+ (TemIdx<<1))) 
-	{ 
-		if(i_send(0xaa)) 
-		{ 
-			i_start(); 
-			if(i_send(0x91+ (TemIdx<<1))) 
-			{ 
-				*(p+1)=i_receive(); 
-				i_ack(); 
-				*p=i_receive(); 
-				i_stop(); 
-				delay_us(2); 
-				return 1; 
-			} 
-			else 
-			{ 
-				i_stop(); 
-				delay_us(2);
-				return 0; 
-			} 
-		} 
-		else 
-		{ 
-			i_stop(); 
-			delay_us(2);
-			return 0; 
-		} 
-	} 
-	else 
-	{ 
-		i_stop(); 
-		delay_us(2); 
-		return 0; 
-	} 
-} 
-
-void pagTemDataAndSend(u8 ID , double Tem)
+void i_start(void)
 {
-	u8 temPag[]={0xAA , 0x55 , 0x00 , 0xDD , 0x00 , 0x08 , 0x00 , 0x00 , 0x00 , 0x00 , 0x56 , 0x78 , 0x9A , 0xBC , 0xDE , 0xF0 , 0x00 , 0x00 , 0x0D , 0x0A};
-		
+	SDA_OUT(); //sdaçº¿è¾“å‡º
+	IIC_SDA = 1;
+	IIC_SCL = 1;
+	delay_us(4);
+	IIC_SDA = 0; //START:when CLK is high,DATA change form high to low
+	delay_us(4);
+	IIC_SCL = 0; //é’³ä½I2Cæ€»çº¿ï¼Œå‡†å¤‡å‘é€æˆ–æ¥æ”¶æ•°æ®
+}
+void i_stop(void)
+{
+	SDA_OUT(); //sdaçº¿è¾“å‡º
+	IIC_SCL = 0;
+	IIC_SDA = 0; //STOP:when CLK is high DATA change form low to high
+	delay_us(4);
+	IIC_SCL = 1;
+	IIC_SDA = 1; //å‘é€I2Cæ€»çº¿ç»“æŸä¿¡å·
+	delay_us(4);
+}
+void i_init(void)
+{
+	SDA_OUT(); //sdaçº¿è¾“å‡º
+	IIC_SCL = 0;
+	i_stop();
+}
+
+u8 i_clock(void)
+{
+	u8 sample;
+	delay_us(2);
+	IIC_SCL = 1;
+	delay_us(2);
+
+	SDA_IN(); //SDAè®¾ç½®ä¸ºè¾“å…¥
+	sample = READ_SDA;
+	delay_us(2);
+	IIC_SCL = 0;
+	delay_us(2);
+	return (sample);
+}
+
+void i_ack(void)
+{
+	SDA_OUT(); //sdaçº¿è¾“å‡º
+	IIC_SDA = 0;
+	i_clock();
+	IIC_SDA = 1;
+}
+
+u8 i_send(unsigned char i_data)
+{
+	unsigned char i;
+	SDA_OUT();	 //sdaçº¿è¾“å‡º
+	IIC_SCL = 0; //æ‹‰ä½æ—¶é’Ÿå¼€å§‹æ•°æ®ä¼ è¾“
+	for (i = 0; i < 8; i++)
+	{
+		if ((i_data & 0x80) >> 7)
+			IIC_SDA = 1;
+		else
+			IIC_SDA = 0;
+		i_data <<= 1;
+		i_clock();
+	}
+	IIC_SDA = 1;
+	if (i_clock()) //1åˆ™æ— åº”ç­”
+		return 0;
+	else //0åˆ™æœ‰åº”ç­”
+		return 1;
+}
+
+unsigned char i_receive(void)
+{
+	unsigned char i_data = 0;
+	unsigned char i;
+	for (i = 0; i < 8; i++)
+	{
+		i_data *= 2;
+		if (i_clock())
+			i_data++;
+	}
+	return (i_data);
+}
+
+u8 start_temperature_T(char TemIdx)
+{
+	i_start();
+	if (i_send(0x90 + (TemIdx << 1)))
+	{
+		if (i_send(0xee))
+		{
+			i_stop();
+			delay_us(2);
+			return (1);
+		}
+		else
+		{
+			i_stop();
+			delay_us(2);
+			return (0);
+		}
+	}
+	else
+	{
+		i_stop();
+		delay_us(2);
+		return (0);
+	}
+}
+
+u8 read_temperature_T(char TemIdx, unsigned char *p)
+{
+	i_start();
+	if (i_send(0x90 + (TemIdx << 1)))
+	{
+		if (i_send(0xaa))
+		{
+			i_start();
+			if (i_send(0x91 + (TemIdx << 1)))
+			{
+				*(p + 1) = i_receive();
+				i_ack();
+				*p = i_receive();
+				i_stop();
+				delay_us(2);
+				return 1;
+			}
+			else
+			{
+				i_stop();
+				delay_us(2);
+				return 0;
+			}
+		}
+		else
+		{
+			i_stop();
+			delay_us(2);
+			return 0;
+		}
+	}
+	else
+	{
+		i_stop();
+		delay_us(2);
+		return 0;
+	}
+}
+
+void pagTemDataAndSend(u8 ID, double Tem)
+{
+	u8 temPag[] = {0xAA, 0x55, 0x00, 0xDD, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x00, 0x00, 0x0D, 0x0A};
+
 	temPag[3] = 0xD0 + ID;
-	*(short *)(&temPag[8]) = (short)(Tem*100);
-	USART_puts(temPag,sizeof(temPag));
+	*(short *)(&temPag[8]) = (short)(Tem * 100);
+	USART_puts(temPag, sizeof(temPag));
 
 	//printf("tem=%d\n",*(short *)(&temPag[8]));
 }
-	
- int main(void)
- {	 
-	unsigned char temperdata[2]; 
+
+int main(void)
+{
+	unsigned char temperdata[2];
 	unsigned char result;
 	double Temple[8];
 	u8 TemIdx = 0;
 	char ReturnValue = 0;
-	u8 TemValid = 0; //ÓĞĞ§µÄÎÂ¶ÈÖµ¸öÊı
-	 
-	 
-	 /*72M */      
+	u8 TemValid = 0; //æœ‰æ•ˆçš„æ¸©åº¦å€¼ä¸ªæ•°
+
+	/*72M */
 	SystemInit();
 	IIC_Init();
 	// i_init();
-	uart_init(115200);	 	//´®¿Ú³õÊ¼»¯Îª115200
+	uart_init(115200); //ä¸²å£åˆå§‹åŒ–ä¸º115200
 
-	
-	while(1)
+	while (1)
 	{
-		//Æô¶¯ËùÓĞDS1624
-		for(TemIdx = 0;TemIdx < TEM_SUM;TemIdx++)	//±éÀúËùÓĞDS1624
+		//å¯åŠ¨æ‰€æœ‰DS1624
+		for (TemIdx = 0; TemIdx < TEM_SUM; TemIdx++) //éå†æ‰€æœ‰DS1624
 		{
-			start_temperature_T(TemIdx);      //Æô¶¯DS1624¿ªÊ¼ÎÂ¶È×ª»» 
+			start_temperature_T(TemIdx); //å¯åŠ¨DS1624å¼€å§‹æ¸©åº¦è½¬æ¢
 		}
-		
-		//µÈ´ı²âÁ¿Íê³É
-		delay_ms(1000);
-		
-		//¶ÁÈ¡DS1624µÄÎÂ¶ÈÖµ
-		for(TemIdx = 0, TemValid = 0;TemIdx < TEM_SUM;TemIdx++)	//±éÀúËùÓĞDS1624
-		{
-			//¶ÁÈ¡ÎÂ¶È
-			ReturnValue = read_temperature_T(TemIdx, temperdata);      //¶ÁÈ¡DS1624µÄÎÂ¶ÈÖµ 
-			
-			if(ReturnValue == 0 || *(uint16_t*)temperdata == 0)	//ÎŞÓ¦´ğµÄ¾ÍÌø¹ı£¬¿ÉÄÜÊÇÎŞ´ËÉè±¸»ò¹ÊÕÏ
-				continue;
-	
-			//´òÓ¡¶ÁÈ¡³öÀ´µÄÊı¾İ
-			//printf("\ntemperdata[0]=%u\n", temperdata[0]); 		//µ÷ÊÔÓÃ
-			//printf("temperdata[1]=%u\n", temperdata[1]>>3);  	//µ÷ÊÔÓÃ
 
-			//¼ÆËãÎÂ¶È
-			if (temperdata[1]&0x80)
+		//ç­‰å¾…æµ‹é‡å®Œæˆ
+		delay_ms(1000);
+
+		//è¯»å–DS1624çš„æ¸©åº¦å€¼
+		for (TemIdx = 0, TemValid = 0; TemIdx < TEM_SUM; TemIdx++) //éå†æ‰€æœ‰DS1624
+		{
+			//è¯»å–æ¸©åº¦
+			ReturnValue = read_temperature_T(TemIdx, temperdata); //è¯»å–DS1624çš„æ¸©åº¦å€¼
+
+			if (ReturnValue == 0 || *(uint16_t *)temperdata == 0) //æ— åº”ç­”çš„å°±è·³è¿‡ï¼Œå¯èƒ½æ˜¯æ— æ­¤è®¾å¤‡æˆ–æ•…éšœ
+				continue;
+
+			//æ‰“å°è¯»å–å‡ºæ¥çš„æ•°æ®
+			//printf("\ntemperdata[0]=%u\n", temperdata[0]); 		//è°ƒè¯•ç”¨
+			//printf("temperdata[1]=%u\n", temperdata[1]>>3);  	//è°ƒè¯•ç”¨
+
+			//è®¡ç®—æ¸©åº¦
+			if (temperdata[1] & 0x80)
 			{
-				Temple[TemIdx] = (double)(-((~temperdata[1]&0x7F)+1-(temperdata[0]>>3)*0.03125));
+				Temple[TemIdx] = (double)(-((~temperdata[1] & 0x7F) + 1 - (temperdata[0] >> 3) * 0.03125));
 			}
 			else
 			{
-				Temple[TemIdx]= (double)((temperdata[1]&0x7F)+(temperdata[0]>>3)*0.03125);
+				Temple[TemIdx] = (double)((temperdata[1] & 0x7F) + (temperdata[0] >> 3) * 0.03125);
 			}
 
 			TemValid++;
-			if(IfDebug == 1 && TemValid == 1) 	//µÚÒ»¸ö»»ĞĞ
+			if (IfDebug == 1 && TemValid == 1) //ç¬¬ä¸€ä¸ªæ¢è¡Œ
 				printf("\n");
-			
-			if(IfDebug == 1)
-				printf("Temple %d£º%.2lf\n", TemIdx, Temple[TemIdx]); 	//µ÷ÊÔÓÃ
-			else
-				pagTemDataAndSend(TemIdx, Temple[TemIdx]);	//´ò°ü²¢·¢ËÍÎÂ¶È
 
-			
-				
+			if (IfDebug == 1)
+				printf("Temple %dï¼š%.2lf\n", TemIdx, Temple[TemIdx]); //è°ƒè¯•ç”¨
+			else
+				pagTemDataAndSend(TemIdx, Temple[TemIdx]); //æ‰“åŒ…å¹¶å‘é€æ¸©åº¦
 		}
-		
-		
-		
-		
-		
 	}
 }
